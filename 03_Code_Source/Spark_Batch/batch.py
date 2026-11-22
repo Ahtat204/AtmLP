@@ -68,4 +68,8 @@ df_by_state_type:DataFrame=df.groupBy("State","TransactionType").agg(functions.c
                                                                      functions.sum("TransactionAmount").alias("volume_totale_ngn"),
                                                                      functions.max("TransactionAmount").alias("montant_max_ngn"),)
 df_by_state_type.show()
+## the TOP 5 most solicited ATMs
+top_five_atm=df.groupBy("ATMID","State","City").agg(functions.count("*").alias("nb_transactions"),functions.sum("TransactionAmount").alias("total_retire"))
+top_five_atm.show()
+top_five_atm.printSchema()
 
