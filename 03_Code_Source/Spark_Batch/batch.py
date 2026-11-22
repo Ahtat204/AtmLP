@@ -1,6 +1,9 @@
 import os
-from pyspark.sql import functions as F
+
+from pyspark.sql import functions as functions
 from pyspark.sql import SparkSession
+from pyspark.sql.dataframe import DataFrame
+
 Historical_Data_Path=os.getenv("Historical_Data_Path")
 spark = SparkSession.builder.appName("Spark_Batch_Processor").getOrCreate()
 spark.sparkContext.setLogLevel("ERROR")
@@ -26,44 +29,43 @@ transaction_type_df = spark.read.csv(transaction_type, header=True, inferSchema=
 calendar_df = spark.read.csv(calendar, header=True, inferSchema=True)
 ## left join with location_df to Add location,and with transaction_type_df to add Transactiontype :
 ### enugu_df and location_df:
-enugu_df=enugu_df.join(location_df,"LocationID",how="left").drop("No of ATMs","Country","LocationID").withColumn(
+enugu_df:DataFrame=enugu_df.join(location_df,"LocationID",how="left").drop("No of ATMs","Country","LocationID").withColumn(
     "duration_sec",
-    F.unix_timestamp("TransactionEndDateTime") - F.unix_timestamp("TransactionStartDateTime")
+    functions.unix_timestamp("TransactionEndDateTime", "MM/dd/yyyy HH:mm") - functions.unix_timestamp("TransactionStartDateTime",
+                                                                                      "MM/dd/yyyy HH:mm")
 ).join(transaction_type_df,"TransactionTypeID",how="left").join(customer_df,"CardholderID",how="left").drop("IsWisabi","First Name","Last Name","Birth Date")
-#### logging for debugging and validation
-enugu_df.show()
-enugu_df.printSchema()
 ### fct_df and location_df:
-fct_df=(fct_df.join(location_df,"LocationID",how="left").drop("No of ATMs","Country","LocationID").withColumn(
-    "duration_sec",
-    F.unix_timestamp("TransactionEndDateTime","MM/dd/yyyy HH:mm") - F.unix_timestamp("TransactionStartDateTime","MM/dd/yyyy HH:mm"))
-        .join(transaction_type_df,"TransactionTypeID",how="left")).join(customer_df,"CardholderID",how="left").drop("IsWisabi","First Name","Last Name","Birth Date")
-#### logging for debugging and validation
-fct_df.show()
-fct_df.printSchema()
+fct_df:DataFrame=((fct_df.join(location_df,"LocationID",how="left").drop("No of ATMs","Country","LocationID")
+        .withColumn("duration_sec",
+                    functions.unix_timestamp("TransactionEndDateTime", "MM/dd/yyyy HH:mm") - functions.unix_timestamp("TransactionStartDateTime", "MM/dd/yyyy HH:mm"))
+        .join(transaction_type_df,"TransactionTypeID",how="left")).join(customer_df,"CardholderID",how="left")
+        .drop("IsWisabi","First Name","Last Name","Birth Date"))
 ### kan_df and location_df:
-kan_df=(kan_df.join(location_df,"LocationID",how="left").drop("No of ATMs","Country","LocationID").withColumn(
+kan_df:DataFrame=(kan_df.join(location_df,"LocationID",how="left").drop("No of ATMs","Country","LocationID").withColumn(
     "duration_sec",
-    F.unix_timestamp("TransactionEndDateTime","MM/dd/yyyy HH:mm") - F.unix_timestamp("TransactionStartDateTime","MM/dd/yyyy HH:mm"))
+    functions.unix_timestamp("TransactionEndDateTime", "MM/dd/yyyy HH:mm") - functions.unix_timestamp("TransactionStartDateTime", "MM/dd/yyyy HH:mm"))
         .join(transaction_type_df,"TransactionTypeID",how="left")).join(customer_df,"CardholderID",how="left").drop("IsWisabi","First Name","Last Name","Birth Date")
-#### logging for debugging and validation
-kan_df.show()
-kan_df.printSchema()
 ### river_df and location_df:
-river_df=(river_df.join(location_df,"LocationID",how="left").drop("No of ATMs","Country","LocationID").withColumn(
+river_df:DataFrame=(river_df.join(location_df,"LocationID",how="left").drop("No of ATMs","Country","LocationID").withColumn(
     "duration_sec",
-    F.unix_timestamp("TransactionEndDateTime","MM/dd/yyyy HH:mm") - F.unix_timestamp("TransactionStartDateTime","MM/dd/yyyy HH:mm"))
+    functions.unix_timestamp("TransactionEndDateTime", "MM/dd/yyyy HH:mm") - functions.unix_timestamp("TransactionStartDateTime", "MM/dd/yyyy HH:mm"))
           .join(transaction_type_df,"TransactionTypeID",how="left")).join(customer_df,"CardholderID",how="left").drop("IsWisabi","First Name","Last Name","Birth Date")
-#### logging for debugging and validation
-river_df.show()
-river_df.printSchema()
 ### lagos_df and location_df:
-lagos_df=(lagos_df.join(location_df,"LocationID",how="left").drop("No of ATMs","Country","LocationID").withColumn(
+lagos_df:DataFrame=(lagos_df.join(location_df,"LocationID",how="left").drop("No of ATMs","Country","LocationID").withColumn(
     "duration_sec",
-    F.unix_timestamp("TransactionEndDateTime","MM/dd/yyyy HH:mm") - F.unix_timestamp("TransactionStartDateTime","MM/dd/yyyy HH:mm"))
+    functions.unix_timestamp("TransactionEndDateTime", "MM/dd/yyyy HH:mm") - functions.unix_timestamp("TransactionStartDateTime", "MM/dd/yyyy HH:mm"))
           .join(transaction_type_df,"TransactionTypeID",how="left")).join(customer_df,"CardholderID",how="left").drop("IsWisabi","First Name","Last Name","Birth Date")
-#### logging for debugging and validation
-lagos_df.show()
-lagos_df.printSchema()
+
 #######################################################################################################
+
+##merging all 5 by-location dataframes:
+df:DataFrame=enugu_df.unionByName(fct_df).unionByName(kan_df).unionByName(river_df).unionByName(lagos_df).withColumnRenamed("TransactionTypeName","TransactionType")
+df.show()
+lagos_df.printSchema()
+## aggregations
+df_by_state_type:DataFrame=df.groupBy("State","TransactionType").agg(functions.count("*").alias("nb_transactions"),
+                                                                     functions.avg("TransactionAmount").alias("montant_moyen_ngn"),
+                                                                     functions.sum("TransactionAmount").alias("volume_totale_ngn"),
+                                                                     functions.max("TransactionAmount").alias("montant_max_ngn"),)
+df_by_state_type.show()
 
