@@ -62,7 +62,7 @@ services:
     volumes:
       - ./logstash/config/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro
       - ./logstash/pipeline:/usr/share/logstash/pipeline
-      - ./archive/customers_lookup.csv:/usr/share/logstash/pipeline/customers.csv
+      - ./04_Datasets/customers_lookup.csv:/usr/share/logstash/pipeline/customers.csv
 
     healthcheck:
       test: ["CMD-SHELL", "systemctl is-active --quiet elasticsearch.service"]
@@ -86,10 +86,10 @@ services:
       retries: 3
       start_period: 10s
     environment:
-      - ELASTICSEARCH_HOSTS=http://localhost:9200
+      - ELASTICSEARCH_HOSTS=http://172.16.96.246
   spark:
     #build: ./Spark/.
-    image: spark_pipeline:latest
+    image: ahtat204/spark-processing-job:latest
     container_name: spark
     network_mode: host
     healthcheck:
@@ -108,7 +108,6 @@ services:
     command: >
       bash -c "spark-submit
       --master local[2]
-      --packages org.elasticsearch:elasticsearch-spark-30_2.12:8.12.0
       main.py"
 volumes:
   esdata01:
