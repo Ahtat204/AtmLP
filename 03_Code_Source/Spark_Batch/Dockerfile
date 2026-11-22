@@ -2,6 +2,8 @@ FROM ahtat204/spark-processing-job:latest
 USER root
 ENV PYSPARK_PYTHON=python3
 ENV PYSPARK_DRIVER_PYTHON=python3
+RUN pip install pandas grpcio numpy pyarrow
+RUN pip install --upgrade protobuf
 #COPY ../Spark/jars /opt/spark/jars
 ENV SPARK_CASSANDRA_CONNECTOR_VERSION=3.5.0
 ENV SCALA_VERSION=2.12

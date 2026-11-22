@@ -1,8 +1,9 @@
 import os
-
-from pyspark.sql import functions as functions
+import pyspark.sql.functions  as functions
 from pyspark.sql import SparkSession
+from  pyspark.sql.window import Window
 from pyspark.sql.dataframe import DataFrame
+
 
 Historical_Data_Path=os.getenv("Historical_Data_Path")
 spark = SparkSession.builder.appName("Spark_Batch_Processor").getOrCreate()
@@ -60,8 +61,6 @@ lagos_df:DataFrame=(lagos_df.join(location_df,"LocationID",how="left").drop("No 
 
 ##merging all 5 by-location dataframes:
 df:DataFrame=enugu_df.unionByName(fct_df).unionByName(kan_df).unionByName(river_df).unionByName(lagos_df).withColumnRenamed("TransactionTypeName","TransactionType")
-df.show()
-lagos_df.printSchema()
 ## aggregations
 df_by_state_type:DataFrame=df.groupBy("State","TransactionType").agg(functions.count("*").alias("nb_transactions"),
                                                                      functions.avg("TransactionAmount").alias("montant_moyen_ngn"),
@@ -72,4 +71,8 @@ df_by_state_type.show()
 top_five_atm=df.groupBy("ATMID","State","City").agg(functions.count("*").alias("nb_transactions"),functions.sum("TransactionAmount").alias("total_retire"))
 top_five_atm.show()
 top_five_atm.printSchema()
-
+window=Window.partitionBy("State").orderBy("total_volume")
+print(type(window),window.__class__.__module__)
+## TOP 3 ATMs/State
+top_3_atm_per_state=df.groupBy("ATMID","State"). agg(functions.sum("TransactionAmount").  alias("total_volume"),functions.count("*").alias("nb_transactions")).withColumn("dense_rank", functions.dense_rank().over(window))
+top_3_atm_per_state.show()
