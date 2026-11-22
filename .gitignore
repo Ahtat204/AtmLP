@@ -8,6 +8,7 @@
 .idea/misc.xml
 .idea/modules.xml
 .idea/vcs.xml
+*.jar
 04_Datasets/Data_Dictionary.xlsx
 04_Datasets/atm_location_lookup.csv
 04_Datasets/calendar_lookup.csv
@@ -19,8 +20,6 @@
 04_Datasets/lagos_transactions.csv
 04_Datasets/rivers_transactions.csv
 04_Datasets/transaction_type_lookup.csv
-README.md
-Spark/.gitignore
 Spark/jars/com.google.protobuf_protobuf-java-2.5.0.jar
 Spark/jars/commons-logging_commons-logging-1.1.1.jar
 Spark/jars/javax.xml.bind_jaxb-api-2.3.1.jar
@@ -33,4 +32,5 @@ elasticsearch_9_5_1.tar
 healthcheck.sh
 kibana.tar
 logstash.tar
-03_Code_Source/Spark/jars
+04_Datasets/
+03_Code_Source/Spark/*
