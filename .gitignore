@@ -34,3 +34,4 @@ kibana.tar
 logstash.tar
 04_Datasets/
 03_Code_Source/Spark/*
+03_Code_Source/Data_Generation/__pycache__/utils.cpython-314.pyc
