@@ -37,13 +37,21 @@ readable_df = kafka_df.selectExpr(
 )
 
 # 5. Start the console stream
+# query = (
+#     readable_df.writeStream.outputMode("append")
+#     .format("console")
+#     .option("truncate", False)
+#     .option("truncate", "false")
+#     .option("numRows", 20)
+#     .start()
+# )
 query = (
     readable_df.writeStream.outputMode("append")
-    .format("console")
-    .option("truncate", False)
-    .option("truncate", "false")
-    .option("numRows", 20)
+    .format("parquet")
+     .outputMode("append")
+     .option("path", "/app/parquets/events")
+    .option("checkpointLocation", "/app/checkpoints")
+    .trigger(processingTime="1 minute")
     .start()
 )
-
 query.awaitTermination()
