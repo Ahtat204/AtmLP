@@ -1,5 +1,5 @@
-- pipeline.id: elasticsearch
-  path.config: "/usr/share/logstash/pipeline/kafka.conf"
+#- pipeline.id: elasticsearch
+#  path.config: "/usr/share/logstash/pipeline/kafka.conf"
 - pipeline.id: transactions
   path.config: "/usr/share/logstash/pipeline/transactions.conf"
 #- pipeline.id: ventes

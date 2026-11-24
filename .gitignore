@@ -54,3 +54,6 @@ atm_location_lookup.csv
 04_Datasets/Historical_Data/lagos_transactions.csv
 04_Datasets/Historical_Data/rivers_transactions.csv
 04_Datasets/Historical_Data/transaction_type_lookup.csv
+delete.json
+delete.sh
+log.json

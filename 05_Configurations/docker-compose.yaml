@@ -1,14 +1,15 @@
 version: '3.8'
 ## don't use localhost on java-based services , use the 127.0.0.1
 services:
-  es-data-01:
-    image: elasticsearch:9.5.1
-    container_name: es-data-01
+  node01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.7
+    container_name: node01
     network_mode: host
     environment:
       - cluster.name=data-cluster
-      - node.name=es-data-01
+      - node.name=node01
       - node.roles=data,ingest
+      - logger.level=ERROR
       - discovery.seed_hosts=127.0.0.1:9300
       - http.port=9201
       - transport.port=9301
@@ -20,20 +21,21 @@ services:
         soft: -1
         hard: -1
     healthcheck:
-      test: ["CMD-SHELL", "systemctl is-active --quiet elasticsearch.service"]
+      test: ["CMD-SHELL", "nc -zv localhost 9200 > /dev/null 2>&1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
     volumes:
       - esdata01:/usr/share/elasticsearch/data
-  es-data-02:
-    image: elasticsearch:9.5.1
-    container_name: es-data-02
+  node02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.7
+    container_name: node02
     network_mode: host
     environment:
       - cluster.name=data-cluster
-      - node.name=es-data-02
+      - node.name=node02
+      - logger.level=ERROR
       - node.roles=data,ingest
       - discovery.seed_hosts=127.0.0.1:9300
       - http.port=9202
@@ -46,7 +48,7 @@ services:
         soft: -1
         hard: -1
     healthcheck:
-      test: ["CMD-SHELL", "systemctl is-active --quiet elasticsearch.service"]
+      test: ["CMD-SHELL", "nc -zv localhost 9200 > /dev/null 2>&1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -63,9 +65,13 @@ services:
     volumes:
       - ../03_Code_Source/logstash/config/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro
       - ../03_Code_Source/logstash/pipeline:/usr/share/logstash/pipeline
-      - ../04_Datasets/Historical_Data/atm_location_lookup.csv:/usr/share/logstash/pipeline/atm_location_lookup.csv
+      - ../04_Datasets/Historical_Data/rivers_transactions.csv:/usr/share/logstash/pipeline/rivers_transactions.csv
+      - ../04_Datasets/Historical_Data/lagos_transactions.csv:/usr/share/logstash/pipeline/lagos_transactions.csv
+      - ../04_Datasets/Historical_Data/kano_transactions.csv:/usr/share/logstash/pipeline/kano_transactions.csv
+      - ../04_Datasets/Historical_Data/fct_transactions.csv:/usr/share/logstash/pipeline/fct_transactions.csv
+
     healthcheck: ## master node healthcheck
-      test: ["CMD-SHELL", "systemctl is-active --quiet elasticsearch.service"]
+      test: ["CMD-SHELL", "nc -zv localhost 9200 > /dev/null 2>&1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -78,13 +84,13 @@ services:
       - KAFKA_TOPIC=transactions
       - KAFKA_HOST=127.0.0.1
   kibana:
-    image: kibana:8.15.0
+    image: docker.elastic.co/kibana/kibana:9.5.7
     container_name: kibana
     network_mode: host
-    extra_hosts:
-      - "elasticsearch:127.0.0.1"
+    #extra_hosts:
+     # - "elasticsearch:127.0.0.1"
     healthcheck:
-      test: ["CMD-SHELL", "systemctl is-active --quiet elasticsearch.service"]
+      test: ["CMD-SHELL", "nc -zv localhost 9200"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -97,7 +103,7 @@ services:
     container_name: spark
     network_mode: host
     healthcheck:
-      test: ["CMD-SHELL", "systemctl is-active --quiet elasticsearch.service"]
+      test: ["CMD-SHELL", "nc -zv localhost 9200 > /dev/null 2>&1"]
       interval: 30s
       timeout: 10s
       retries: 3
