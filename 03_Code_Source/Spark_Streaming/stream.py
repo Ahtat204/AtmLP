@@ -19,25 +19,30 @@ kafka_df = (
     spark.readStream
     .format("kafka")
     .option("kafka.bootstrap.servers", KAFKA_HOST)
-    .option("subscribe", KAFKA_TOPIC)
+    .option("subscribePattern", f"^{KAFKA_TOPIC}$")
     .option("startingOffsets", "earliest")
     .load()
 )
 
 # 4. Cast binary key/value to readable strings
+# readable_df = kafka_df.selectExpr(
+#     "CAST(key AS STRING)",
+#     "CAST(value AS STRING)",
+#     "topic",
+#     "partition",
+#     "offset"
+# )
 readable_df = kafka_df.selectExpr(
-    "CAST(key AS STRING)",
     "CAST(value AS STRING)",
-    "topic",
-    "partition",
-    "offset"
 )
 
 # 5. Start the console stream
 query = (
-    readable_df.writeStream
+    readable_df.writeStream.outputMode("append")
     .format("console")
     .option("truncate", False)
+    .option("truncate", "false")
+    .option("numRows", 20)
     .start()
 )
 
