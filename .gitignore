@@ -33,4 +33,4 @@ elasticsearch_9_5_1.tar
 healthcheck.sh
 kibana.tar
 logstash.tar
-03_Code_Source/Spark/jars
+03_Code_Source/Spark
