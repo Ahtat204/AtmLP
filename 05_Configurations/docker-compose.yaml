@@ -1,0 +1,150 @@
+version: '3.8'
+## don't use localhost on java-based services , use the 127.0.0.1
+services:
+  node01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.7
+    container_name: node01
+    network_mode: host
+    environment:
+      - cluster.name=data-cluster
+      - node.name=node01
+      - node.roles=data,ingest
+      - logger.level=ERROR
+      - discovery.seed_hosts=127.0.0.1:9300
+      - http.port=9201
+      - transport.port=9301
+      - xpack.security.enabled=false
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test: ["CMD-SHELL", "nc -zv localhost 9200 > /dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - esdata01:/usr/share/elasticsearch/data
+  node02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.7
+    container_name: node02
+    network_mode: host
+    environment:
+      - cluster.name=data-cluster
+      - node.name=node02
+      - logger.level=ERROR
+      - node.roles=data,ingest
+      - discovery.seed_hosts=127.0.0.1:9300
+      - http.port=9202
+      - transport.port=9302
+      - xpack.security.enabled=false
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test: ["CMD-SHELL", "nc -zv localhost 9200 > /dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - esdata02:/usr/share/elasticsearch/data
+  logstash:
+    image: logstash:8.19.22
+    container_name: logstash
+    network_mode: host
+    depends_on:
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ../03_Code_Source/logstash/config/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro
+      - ../03_Code_Source/logstash/pipeline:/usr/share/logstash/pipeline
+      - ../04_Datasets/Historical_Data/rivers_transactions.csv:/usr/share/logstash/pipeline/rivers_transactions.csv
+      - ../04_Datasets/Historical_Data/lagos_transactions.csv:/usr/share/logstash/pipeline/lagos_transactions.csv
+      - ../04_Datasets/Historical_Data/kano_transactions.csv:/usr/share/logstash/pipeline/kano_transactions.csv
+      - ../04_Datasets/Historical_Data/fct_transactions.csv:/usr/share/logstash/pipeline/fct_transactions.csv
+
+    healthcheck: ## master node healthcheck
+      test: ["CMD-SHELL", "nc -zv localhost 9200 > /dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    environment:
+      - LS_JAVA_OPTS=-Xms512m -Xmx512m
+      - XPACK_MONITORING_ELASTICSEARCH_HOSTS=["http://127.0.0.1:9200"]
+      - LOG_LEVEL=error
+      - ES_HOST=127.0.0.1
+      - KAFKA_TOPIC=transactions
+      - KAFKA_HOST=127.0.0.1
+  kibana:
+    image: docker.elastic.co/kibana/kibana:9.5.7
+    container_name: kibana
+    network_mode: host
+    #extra_hosts:
+     # - "elasticsearch:127.0.0.1"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -zv localhost 9200"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    environment:
+      - ELASTICSEARCH_HOSTS=["http://127.0.0.1:9200"]
+  spark:
+    #build: ./Spark/.
+    image: ahtat204/spark-processing-job:latest
+    container_name: spark
+    network_mode: host
+    healthcheck:
+      test: ["CMD-SHELL", "nc -zv localhost 9200 > /dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    environment:
+      SPARK_MODE: driver
+      ES_NODES: "localhost"
+      ES_PORT: 9200
+    volumes:
+      - spark:/opt/spark-app
+      - ./Spark/main.py:/app/main.py
+    command: >
+      bash -c "spark-submit --master local[2] main.py"
+
+  kafka:
+    image: apache/kafka:latest
+    container_name: kafka
+    network_mode: host
+    environment:
+      - KAFKA_NODE_ID= 1
+      - KAFKA_PROCESS_ROLES= broker,controller
+      - KAFKA_LISTENERS= PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_ADVERTISED_LISTENERS= PLAINTEXT://localhost:9092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP= CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CONTROLLER_LISTENER_NAMES= CONTROLLER
+      - KAFKA_CONTROLLER_QUORUM_VOTERS= 1@localhost:9093
+      - KAFKA_LOG_DIRS= /var/lib/kafka/data
+      - KAFKA_CLUSTER_ID= MkU3OEVBNTcwNTJENDM2Qk
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9092 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  esdata01:
+  esdata02:
+  spark:
+  ##According to the systemd standard specification, systemctl status returns specific exit codes based on the state of the service:
+  #0: Program is running or service is OK (active)
+  #1: Program is dead and /var/run pid file exists
+  #2: Program is dead, but /var/lock lock file exists
+# 3: Program is not running (inactive or stopped)
+#4: Program or service is unknown / not found
+##

@@ -1,0 +1,8 @@
+#- pipeline.id: elasticsearch
+#  path.config: "/usr/share/logstash/pipeline/kafka.conf"
+- pipeline.id: transactions
+  path.config: "/usr/share/logstash/pipeline/transactions.conf"
+#- pipeline.id: ventes
+#  path.config: "/usr/share/logstash/pipeline/ventes.conf"
+#- pipeline.id: customers
+#  path.config: "/usr/share/logstash/pipeline/hour-lookup.conf"
