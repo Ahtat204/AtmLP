@@ -17,7 +17,7 @@ def generate_event():
     prefix = rstr.xeger(r"(RI|FC|LA|EN|KN)")
     locationid = f"{prefix}-{random.randint(0, 10):03d}"
     location = extract_location(locationid)
-    state=location["State"].to_string()
+    state=location["State"].to_string(index=False)
     ##state:str=random.choice(["ENUGU", "KANO", "RIVERS","LAGOS","Federal Capital Territory"])
     year=datetime.now().year
     start=datetime.now().strftime("%m/%d/%Y %H:%M")
@@ -35,14 +35,14 @@ def generate_event():
         "TransactionStartDateTime": start,
         "TransactionEndDateTime":  end,
         "TransactionAmount": random.randint(0,9)*10**random.randint(2,9),
-        "Location Name": location["Location Name"].to_string(),
-        "City": location["City"].to_string()  ,
-        "State": location["State"].to_string(),
+        "Location Name": location["Location Name"].to_string(index=False),
+        "City": location["City"].to_string(index=False)  ,
+        "State": state,
         "duration_sec":duration,
         "TransactionTypeName":tr_type,
         "Gender":gender,
         "ATMID":atm_id,
-        "Occupation":extract_occupation(atm_id).to_string(),
+        "Occupation":extract_occupation(atm_id),
         "AccountType":random.choices(["Current", "Savings"], weights=[0.4, 0.6])[0]
     }
 

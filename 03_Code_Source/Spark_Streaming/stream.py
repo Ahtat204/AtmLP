@@ -1,14 +1,44 @@
 import os
-from pyspark.sql import SparkSession, DataFrame
-KAFKA_HOST = os.environ.get('KAFKA_HOST')
-KAFKA_TOPIC= os.environ.get('KAFKA_TOPIC')
-spark: SparkSession = SparkSession.builder.appName("Stream_Processor").getOrCreate()
-spark.sparkContext.setLogLevel("ERROR")
-kafka_df=(spark.readStream.format("kafka").
-          option("kafka.bootstrap.servers", KAFKA_HOST).
-          option("subscribe", KAFKA_TOPIC).option("startingOffsets", "earliest"))
+from pyspark.sql import SparkSession
 
+KAFKA_HOST = os.environ.get("KAFKA_HOST")
+KAFKA_TOPIC = os.environ.get("KAFKA_TOPIC")
 
-query =kafka_df.format("rate").load().writeStream.format("console").option("startingOffsets", "earliest").start().awaitTermination()
+# 1. Verify environment variables are actually loaded
+assert KAFKA_HOST, "KAFKA_HOST is not set"
+assert KAFKA_TOPIC, "KAFKA_TOPIC is not set"
+print(f"Connecting to {KAFKA_HOST} | Topic: {KAFKA_TOPIC}")
 
+spark = SparkSession.builder.appName("Stream_Processor").getOrCreate()
 
+# 2. Keep WARN level temporarily so Kafka connection/topic issues show up
+spark.sparkContext.setLogLevel("WARN")
+
+# 3. Call .load() here to get an actual DataFrame
+kafka_df = (
+    spark.readStream
+    .format("kafka")
+    .option("kafka.bootstrap.servers", KAFKA_HOST)
+    .option("subscribe", KAFKA_TOPIC)
+    .option("startingOffsets", "earliest")
+    .load()
+)
+
+# 4. Cast binary key/value to readable strings
+readable_df = kafka_df.selectExpr(
+    "CAST(key AS STRING)",
+    "CAST(value AS STRING)",
+    "topic",
+    "partition",
+    "offset"
+)
+
+# 5. Start the console stream
+query = (
+    readable_df.writeStream
+    .format("console")
+    .option("truncate", False)
+    .start()
+)
+
+query.awaitTermination()

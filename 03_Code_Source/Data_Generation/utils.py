@@ -12,7 +12,10 @@ def extract_location(locationid: str):
 
 
 def extract_occupation(atm_id: str):
-    return customer[customer['ATMID'] == atm_id]["Occupation"]
+    temp= customer[customer['ATMID'] == atm_id]
+    if temp.empty:
+        return None
+    return temp['Occupation'].iloc[0]
 
 
 # prefix = rstr.xeger(r"(RI|FC|LA|EN|KN)")
